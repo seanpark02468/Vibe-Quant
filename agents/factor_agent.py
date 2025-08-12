@@ -162,13 +162,14 @@ import inspect
 from pathlib import Path
 from clients.llm_client import LLMClient
 from core import operators
+#from agents import operators
 
 class FactorAgent:
     def __init__(self, llm_client: LLMClient):
         self.llm_client = llm_client
 
         # operator.json 불러오기
-        operator_json_path = Path(__file__).parent.parent / "core" / "operators.json"
+        operator_json_path = Path(__file__).parent.parent / "agents" / "operators.json"
         with open(operator_json_path, "r", encoding="utf-8") as f:
             self.operator_info = json.load(f)
 
