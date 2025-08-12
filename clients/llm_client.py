@@ -11,7 +11,7 @@ Original file is located at
 
 import streamlit as st
 from openai import OpenAI
-# from config import LLM_MODEL_NAME
+from ..config import LLM_MODEL_NAME
 
 class LLMClient:
     """
@@ -26,7 +26,6 @@ class LLMClient:
             # Streamlit의 secrets.toml에서 API 키를 가져옵니다.
             api_key = st.secrets["OPENAI_API_KEY"]
             self.client = OpenAI(api_key=api_key)
-            LLM_MODEL_NAME = "gpt-4o"
         except KeyError:
             raise ValueError("OpenAI API 키가 .streamlit/secrets.toml 파일에 설정되지 않았습니다.")
         except Exception as e:
