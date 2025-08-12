@@ -9,14 +9,14 @@ Original file is located at
 
 # config.py
 
-import os
+# import os
 
 # 프로젝트 기본 경로
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # 데이터 파일 경로
 # 사용자는 '/data/kor_stocks.parquet' 경로에 주식 데이터를 위치시켜야 합니다.
-DATA_PATH = os.path.join(BASE_DIR, 'data', 'kor_stocks.parquet')
+# DATA_PATH = os.path.join(BASE_DIR, 'data', 'kor_stocks.parquet')
 
 # 구글 드라이브 파일 ID
 # GOOGLE_DRIVE_FILE_ID = ""https://drive.google.com/uc?export=download&id=1WjVEAIV1yBYAUlA5EXGcMyUs7r7HOY5x""
