@@ -10,3 +10,4 @@ bayesian-optimization
 numpy
 scipy
 gdown
+os
