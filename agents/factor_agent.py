@@ -71,6 +71,8 @@ Original file is located at
 import json
 import re  # 정규 표현식 모듈 임포트
 from clients.llm_client import LLMClient
+import inspect
+import operators
 
 class FactorAgent:
     """
@@ -84,13 +86,20 @@ class FactorAgent:
         Args:
             llm_client (LLMClient): LLM과 상호작용하기 위한 클라이언트.
         """
+        # self.llm_client = llm_client
+        # # 사용 가능한 Operator 목록
+        # self.available_operators = [
+        #     'sign', 'delay', 'delta', 'correlation', 'covariance', 'ts_min',
+        #     'ts_max', 'ts_argmin', 'ts_argmax', 'ts_rank', 'stddev', 'sum',
+        #     'product', 'decay_linear', 'rank', 'scale', 'indneutralize'
+        # ]
+
         self.llm_client = llm_client
-        # 사용 가능한 Operator 목록
+        # operators.py에서 '_'로 시작하지 않는 모든 함수 이름을 동적으로 로드
         self.available_operators = [
-            'sign', 'delay', 'delta', 'correlation', 'covariance', 'ts_min',
-            'ts_max', 'ts_argmin', 'ts_argmax', 'ts_rank', 'stddev', 'sum',
-            'product', 'decay_linear', 'rank', 'scale', 'indneutralize'
-        ]
+            name for name, func in inspect.getmembers(operators, inspect.isfunction)
+            if not name.startswith('_')
+        ]    
 
     def create_factors(self, hypothesis: dict, num_factors: int = 3) -> list:
         """
