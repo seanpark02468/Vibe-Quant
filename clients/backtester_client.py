@@ -14,6 +14,7 @@ import lightgbm as lgb
 from scipy.stats import pearsonr
 import streamlit as st
 import os
+import gdown
 # from ..config import DATA_PATH
 
 class BacktesterClient:
