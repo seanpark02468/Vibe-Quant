@@ -11,6 +11,7 @@ Original file is located at
 
 import streamlit as st
 from openai import OpenAI
+import os
 # from ..config import LLM_MODEL_NAME
 
 class LLMClient:
