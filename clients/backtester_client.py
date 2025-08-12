@@ -17,7 +17,7 @@ import os
 import gdown
 import pyarrow
 import inspect
-import operators as op
+import operators
 # from ..config import DATA_PATH
 
 class BacktesterClient:
