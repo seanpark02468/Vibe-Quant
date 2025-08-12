@@ -53,23 +53,10 @@ class IdeaAgent:
         user_prompt = f"다음 사용자 인사이트를 바탕으로 구조화된 투자 가설을 JSON 형식으로 생성해주세요:\n\n---\n{initial_insight}\n---"
 
         response_text = self.llm_client.generate_text(user_prompt, system_prompt)
-        # try:
-        #     return json.loads(response_text)
-        # except json.JSONDecodeError:
-        #     print("오류: LLM이 유효한 JSON 형식의 가설을 생성하지 못했습니다.")
-        #     return {}
         try:
-        # 정규 표현식을 사용해 응답에서 JSON 객체만 찾아냅니다.
-        # re.DOTALL은 줄바꿈 문자(\n)도 . 에 포함시켜 여러 줄로 된 JSON을 처리합니다.
-        match = re.search(r'\{.*\}', response_text, re.DOTALL)
-        
-        if match:
-            json_str = match.group(0)
-            return json.loads(json_str)
-        else:
-            # 응답에서 JSON 패턴을 아예 찾지 못한 경우
-            print("오류: LLM 응답에서 유효한 JSON 패턴을 찾지 못했습니다.")
-            print("수신된 전체 텍스트:", response_text)
+            return json.loads(response_text)
+        except json.JSONDecodeError:
+            print("오류: LLM이 유효한 JSON 형식의 가설을 생성하지 못했습니다.")
             return {}
 
     except json.JSONDecodeError as e:
