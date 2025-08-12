@@ -9,7 +9,67 @@ Original file is located at
 
 # /agents/factor_agent.py
 
+# import json
+# from clients.llm_client import LLMClient
+
+# class FactorAgent:
+#     """
+#     시장 가설을 구체적인 알파 팩터 표현식으로 변환하는 에이전트.
+#     LLM을 활용하여 가설의 논리를 따르는 여러 후보 팩터를 생성합니다.
+#     """
+#     def __init__(self, llm_client: LLMClient):
+#         """
+#         에이전트를 초기화합니다.
+
+#         Args:
+#             llm_client (LLMClient): LLM과 상호작용하기 위한 클라이언트.
+#         """
+#         self.llm_client = llm_client
+#         # 사용 가능한 Operator 목록 (실제로는 operators.py에서 동적으로 로드할 수 있음)
+#         self.available_operators = [
+#             'sign', 'delay', 'delta', 'correlation', 'covariance', 'ts_min',
+#             'ts_max', 'ts_argmin', 'ts_argmax', 'ts_rank', 'stddev', 'sum',
+#             'product', 'decay_linear', 'rank', 'scale', 'indneutralize'
+#         ]
+
+#     def create_factors(self, hypothesis: dict, num_factors: int = 3) -> list:
+#         """
+#         주어진 가설을 바탕으로 여러 개의 알파 팩터 후보를 생성합니다.
+
+#         Args:
+#             hypothesis (dict): IdeaAgent가 생성한 구조화된 가설.
+#             num_factors (int): 생성할 팩터 후보의 수.
+
+#         Returns:
+#             list: 각 요소가 팩터의 설명과 수식을 담은 딕셔너리 리스트.
+#                   (예: [{'description': '...', 'formula': '...'}, ...])
+#         """
+#         system_prompt = f"""
+#         당신은 파이썬과 pandas 라이브러리에 능숙한 퀀트 개발자입니다.
+#         주어진 투자 가설을 수학적 표현식(알파 팩터)으로 구현해야 합니다.
+#         반드시 다음 규칙을 따라야 합니다:
+#         1. 최종 결과는 JSON 형식의 리스트여야 하며, 각 요소는 'description'과 'formula' 키를 가진 객체입니다.
+#         2. 'formula'는 pandas에서 `df.eval()`로 실행 가능한 파이썬 코드여야 합니다.
+#         3. 'formula'를 작성할 때, 기본 데이터 컬럼('open', 'high', 'low', 'close', 'volume')과
+#            다음의 허용된 함수(오퍼레이터) 목록만을 사용해야 합니다: {', '.join(self.available_operators)}.
+#         4. 허용되지 않은 함수나 라이브러리(예: np.log, talib 등)는 절대 사용하면 안 됩니다.
+#         5. 가설의 핵심 아이디어를 반영하는 창의적이고 다양한 {num_factors}개의 팩터를 생성해주세요.
+#         """
+#         user_prompt = f"다음 가설을 바탕으로, 규칙에 맞는 알파 팩터 {num_factors}개를 JSON 리스트 형식으로 생성해주세요:\n\n---\n{json.dumps(hypothesis, indent=2, ensure_ascii=False)}\n---"
+
+#         response_text = self.llm_client.generate_text(user_prompt, system_prompt)
+#         try:
+#             factors = json.loads(response_text)
+#             if isinstance(factors, list) and all('formula' in f for f in factors):
+#                 return factors
+#             else:
+#                 raise ValueError
+#         except (json.JSONDecodeError, ValueError):
+#             print("오류: LLM이 유효한 JSON 형식의 팩터 리스트를 생성하지 못했습니다.")
+#             return []
+
 import json
+import re  # 정규 표현식 모듈 임포트
 from clients.llm_client import LLMClient
 
 class FactorAgent:
@@ -25,7 +85,7 @@ class FactorAgent:
             llm_client (LLMClient): LLM과 상호작용하기 위한 클라이언트.
         """
         self.llm_client = llm_client
-        # 사용 가능한 Operator 목록 (실제로는 operators.py에서 동적으로 로드할 수 있음)
+        # 사용 가능한 Operator 목록
         self.available_operators = [
             'sign', 'delay', 'delta', 'correlation', 'covariance', 'ts_min',
             'ts_max', 'ts_argmin', 'ts_argmax', 'ts_rank', 'stddev', 'sum',
@@ -42,7 +102,6 @@ class FactorAgent:
 
         Returns:
             list: 각 요소가 팩터의 설명과 수식을 담은 딕셔너리 리스트.
-                  (예: [{'description': '...', 'formula': '...'}, ...])
         """
         system_prompt = f"""
         당신은 파이썬과 pandas 라이브러리에 능숙한 퀀트 개발자입니다.
@@ -58,12 +117,32 @@ class FactorAgent:
         user_prompt = f"다음 가설을 바탕으로, 규칙에 맞는 알파 팩터 {num_factors}개를 JSON 리스트 형식으로 생성해주세요:\n\n---\n{json.dumps(hypothesis, indent=2, ensure_ascii=False)}\n---"
 
         response_text = self.llm_client.generate_text(user_prompt, system_prompt)
+        
         try:
-            factors = json.loads(response_text)
-            if isinstance(factors, list) and all('formula' in f for f in factors):
+            # LLM 응답에서 JSON 리스트('[...]' 형태)만 추출합니다.
+            # re.DOTALL 플래그는 '.'이 줄바꿈 문자도 포함하도록 합니다.
+            match = re.search(r'```json\s*(\[.*?\])\s*```|(\[.*?\])', response_text, re.DOTALL)
+            
+            if not match:
+                # LLM 응답에서 리스트 형식을 찾지 못한 경우
+                print("오류: LLM 응답에서 유효한 JSON 리스트를 찾을 수 없습니다.")
+                print(f"--- LLM 원본 응답 ---\n{response_text}\n--------------------")
+                return []
+
+            # 찾은 JSON 문자열을 추출합니다.
+            json_string = match.group(1) if match.group(1) else match.group(2)
+            factors = json.loads(json_string)
+
+            # 파싱된 결과가 유효한 형식인지 다시 한번 확인합니다.
+            if isinstance(factors, list) and all(isinstance(f, dict) and 'formula' in f for f in factors):
                 return factors
             else:
-                raise ValueError
-        except (json.JSONDecodeError, ValueError):
-            print("오류: LLM이 유효한 JSON 형식의 팩터 리스트를 생성하지 못했습니다.")
+                print("오류: 파싱된 데이터가 유효한 팩터 리스트 형식이 아닙니다.")
+                print(f"--- LLM 원본 응답 ---\n{response_text}\n--------------------")
+                return []
+
+        except json.JSONDecodeError as e:
+            # 추출된 문자열이 여전히 유효한 JSON이 아닌 경우
+            print(f"오류: 추출된 문자열이 유효한 JSON이 아닙니다. (오류: {e})")
+            print(f"--- LLM 원본 응답 ---\n{response_text}\n--------------------")
             return []
