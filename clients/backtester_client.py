@@ -28,25 +28,32 @@ class BacktesterClient:
 
     def load_data(self) -> pd.DataFrame:
         """
-        지정된 경로에서 Parquet 형식의 주식 데이터를 로드합니다.
-
-        Returns:
-            pd.DataFrame: 로드된 주식 데이터프레임. 데이터 로드 실패 시 빈 데이터프레임 반환.
+        구글 드라이브에서 Parquet 형식의 주식 데이터를 다운로드하여 로드합니다.
         """
+        output_path = 'kor_stocks.parquet'
+        
+        # 파일이 이미 로컬에 존재하지 않는 경우에만 다운로드
+        if not os.path.exists(output_path):
+            try:
+                with st.spinner("구글 드라이브에서 주식 데이터를 다운로드 중입니다..."):
+                    gdown.download(id=GOOGLE_DRIVE_FILE_ID, output=output_path, quiet=False)
+            except Exception as e:
+                st.error(f"구글 드라이브 파일 다운로드 중 오류 발생: {e}")
+                return pd.DataFrame()
+
+        # 다운로드된 로컬 파일을 읽습니다.
         try:
-            df = pd.read_parquet(DATA_PATH)
+            df = pd.read_parquet(output_path)
             df['date'] = pd.to_datetime(df['date'])
-            # 필요한 경우 데이터 전처리 추가 (예: 결측치 처리)
             df.sort_values(by=['ticker', 'date'], inplace=True)
             df.reset_index(drop=True, inplace=True)
             return df
         except FileNotFoundError:
-            st.error(f"데이터 파일을 찾을 수 없습니다: {DATA_PATH}")
+            st.error(f"다운로드된 데이터 파일({output_path})을 찾을 수 없습니다.")
             return pd.DataFrame()
         except Exception as e:
             st.error(f"데이터 로드 중 오류 발생: {e}")
             return pd.DataFrame()
-
     def run_backtest(self, factor_expression: str) -> float:
         """
         주어진 팩터 표현식을 평가하고 LightGBM을 사용하여 백테스트를 실행합니다.
