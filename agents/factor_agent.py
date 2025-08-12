@@ -162,7 +162,7 @@ import inspect
 from pathlib import Path
 from clients.llm_client import LLMClient
 from core import operators
-#from agents import operators
+from agents import operators
 
 class FactorAgent:
     def __init__(self, llm_client: LLMClient):
