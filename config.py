@@ -19,7 +19,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(BASE_DIR, 'data', 'kor_stocks.parquet')
 
 # 구글 드라이브 파일 ID
-GOOGLE_DRIVE_FILE_ID = ""https://drive.google.com/uc?export=download&id=1WjVEAIV1yBYAUlA5EXGcMyUs7r7HOY5x""
+# GOOGLE_DRIVE_FILE_ID = ""https://drive.google.com/uc?export=download&id=1WjVEAIV1yBYAUlA5EXGcMyUs7r7HOY5x""
 
 # LLM 모델 설정
 # LLM_MODEL_NAME = "gpt-4o"
