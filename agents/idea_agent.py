@@ -15,7 +15,7 @@ from clients.llm_client import LLMClient
 class IdeaAgent:
     """
     시장 가설을 생성하고 개선하는 역할을 담당하는 에이전트.
-    LLM을 사용하여 전문가의 초기 아이디어를 구조화된 가설로 변환하고,
+    LLM을 사용하여 사용자의 초기 아이디어를 구조화된 가설로 변환하고,
     백테스팅 결과를 바탕으로 새로운 가설을 생성합니다.
     """
     def __init__(self, llm_client: LLMClient):
@@ -48,7 +48,7 @@ class IdeaAgent:
         4. hypothesis: '만약 ~하다면, ~할 것이다' 형태의 명확하고 검증 가능한 가설.
         5. specification: 가설을 팩터로 구현할 때 고려해야 할 구체적인 조건이나 파라미터.
         """
-        user_prompt = f"다음 전문가 인사이트를 바탕으로 구조화된 투자 가설을 JSON 형식으로 생성해주세요:\n\n---\n{initial_insight}\n---"
+        user_prompt = f"다음 사용자 인사이트를 바탕으로 구조화된 투자 가설을 JSON 형식으로 생성해주세요:\n\n---\n{initial_insight}\n---"
 
         response_text = self.llm_client.generate_text(user_prompt, system_prompt)
         try:
