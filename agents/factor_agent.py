@@ -10,7 +10,7 @@ Original file is located at
 # /agents/factor_agent.py
 
 import json
-from ..clients.llm_client import LLMClient
+from clients.llm_client import LLMClient
 
 class FactorAgent:
     """
