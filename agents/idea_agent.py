@@ -59,11 +59,6 @@ class IdeaAgent:
             print("오류: LLM이 유효한 JSON 형식의 가설을 생성하지 못했습니다.")
             return {}
 
-    except json.JSONDecodeError as e:
-        print(f"오류: 추출된 텍스트가 유효한 JSON이 아닙니다. 오류: {e}")
-        print("파싱 시도 텍스트:", match.group(0) if 'match' in locals() and match else "N/A")
-        return {}
-
     def refine_hypothesis(self, previous_results: dict) -> dict:
         """
         이전 백테스팅 결과를 바탕으로 기존 가설을 개선하거나 새로운 가설을 생성합니다.
