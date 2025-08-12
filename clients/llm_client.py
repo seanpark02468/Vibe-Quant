@@ -19,6 +19,7 @@ class LLMClient:
     OpenAI의 Large Language Model (LLM)과 상호작용하는 클라이언트.
     Streamlit의 secrets 관리 기능을 사용하여 API 키를 안전하게 관리합니다.
     """
+    LLM_MODEL_NAME = "gpt-4o"
     def __init__(self):
         """
         클라이언트를 초기화하고 OpenAI API에 연결합니다.
@@ -27,7 +28,6 @@ class LLMClient:
             # Streamlit의 secrets.toml에서 API 키를 가져옵니다.
             api_key = st.secrets["OPENAI_API_KEY"]
             self.client = OpenAI(api_key=api_key)
-            LLM_MODEL_NAME = "gpt-4o"
         except KeyError:
             raise ValueError("OpenAI API 키가 .streamlit/secrets.toml 파일에 설정되지 않았습니다.")
         except Exception as e:
