@@ -32,7 +32,7 @@ class LLMClient:
         except Exception as e:
             raise RuntimeError(f"OpenAI 클라이언트 초기화 중 오류 발생: {e}")
 
-    def generate_text(self, prompt: str, system_prompt: str = "You are a helpful assistant.") -> str:
+    def generate_text(self, user_prompt: str, system_prompt: str = "You are a helpful assistant.") -> str:
         """
         주어진 프롬프트를 기반으로 LLM을 사용하여 텍스트를 생성합니다.
 
