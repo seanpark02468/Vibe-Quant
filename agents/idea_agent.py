@@ -10,7 +10,6 @@ Original file is located at
 # /agents/idea_agent.py
 
 import json
-import re
 from clients.llm_client import LLMClient
 
 class IdeaAgent:
@@ -39,18 +38,27 @@ class IdeaAgent:
             dict: 구조화된 시장 가설.
                   (예: {'knowledge', 'observation', 'justification', 'hypothesis', 'specification'})
         """
-        system_prompt = """
-        당신은 월스트리트의 저명한 퀀트 분석가입니다. 당신의 임무는 주어진 시장 인사이트를 바탕으로,
-        검증 가능한 정량적 투자 가설을 체계적으로 수립하는 것입니다.
+        system_prompt = f"""
+        당신은 월스트리트의 저명한 퀀트 분석가입니다.
+        당신의 임무는 다음의 사용자 인사이트를 바탕으로, 검증 가능한 정량적 투자 가설을 체계적으로 수립하는 것입니다.
+        
+        --- [사용자 인사이트 시작] ---
+        {initial_insight}
+        --- [사용자 인사이트 끝] ---
+        
         결과는 반드시 다음의 5가지 요소를 포함하는 JSON 형식으로 응답해야 합니다.
+
+        --- [JSON 형식 시작] ---
         1. knowledge: 가설의 기반이 되는 금융 이론이나 시장 원리.
         2. observation: 현재 시장에서 관찰되는 구체적인 현상.
         3. justification: 관찰된 현상이 금융 이론에 의해 어떻게 설명될 수 있는지 논리적 근거.
         4. hypothesis: '만약 ~하다면, ~할 것이다' 형태의 명확하고 검증 가능한 가설.
         5. specification: 가설을 팩터로 구현할 때 고려해야 할 구체적인 조건이나 파라미터.
+         --- [JSON 형식 끝] ---
+        
         JSON 응답 외의 다른 설명은 절대로 추가하지 마세요
         """
-        user_prompt = f"다음 사용자 인사이트를 바탕으로 구조화된 투자 가설을 JSON 형식으로 생성해주세요:\n\n---\n{initial_insight}\n---"
+        # user_prompt = f"다음 사용자 인사이트를 바탕으로 구조화된 투자 가설을 JSON 형식으로 생성해주세요:\n\n---\n{initial_insight}\n---"
 
         response_text = self.llm_client.generate_text(user_prompt, system_prompt)
         try:
