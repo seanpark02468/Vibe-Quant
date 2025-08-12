@@ -279,9 +279,9 @@ def indneutralize(series: pd.Series, industry_series: pd.Series) -> pd.Series:
     group_mean = series.groupby([series.index.get_level_values('date'), industry_series]).transform('mean')
     return series - group_mean
 
-# --- Aliases for convenience ---
-min = ts_min
-max = ts_max
-signedpower = np.power
-sum = ts_sum      # sum이 내장 함수이므로 ts_sum으로 구현 후 별칭 사용
-product = ts_product # product도 마찬가지
+# # --- Aliases for convenience ---
+# min = ts_min
+# max = ts_max
+# signedpower = np.power
+# sum = ts_sum      # sum이 내장 함수이므로 ts_sum으로 구현 후 별칭 사용
+# product = ts_product # product도 마찬가지
