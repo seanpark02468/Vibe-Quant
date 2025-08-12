@@ -101,6 +101,61 @@ class BacktesterClient:
             st.error(f"데이터 로드 중 알 수 없는 오류 발생: {e}")
             return pd.DataFrame()
     
+    # def run_backtest(self, factor_expression: str) -> float:
+    #     """
+    #     주어진 팩터 표현식을 평가하고 LightGBM을 사용하여 백테스트를 실행합니다.
+
+    #     Args:
+    #         factor_expression (str): 평가할 알파 팩터의 문자열 표현식.
+    #                                  (예: 'close / open - 1')
+
+    #     Returns:
+    #         float: 계산된 정보 계수(IC). 오류 발생 시 0.0을 반환합니다.
+    #     """
+    #     if self.stock_data.empty:
+    #         st.warning("주식 데이터가 없어 백테스팅을 건너뜁니다.")
+    #         return 0.0
+
+    #     try:
+    #         # 1. 팩터 값 계산 (pd.eval 사용)
+    #         # 'self.stock_data'의 컬럼을 지역 변수처럼 사용하여 표현식 계산
+    #         # 보안 참고: 실제 서비스에서는 eval 사용에 매우 신중해야 합니다.
+    #         # 이 프로젝트에서는 내부적으로 생성된 팩터만 사용하므로 제한적으로 허용합니다.
+    #         factor_values = self.stock_data.eval(factor_expression, engine='python')
+
+    #         # 2. 예측 대상(target) 생성: 다음 날의 수익률
+    #         # 그룹별(ticker)로 수익률을 계산하여 데이터 왜곡 방지
+    #         target = self.stock_data.groupby('ticker')['close'].pct_change(1).shift(-1)
+
+    #         # 3. 데이터셋 준비
+    #         df_backtest = pd.DataFrame({
+    #             'factor': factor_values,
+    #             'target': target
+    #         }).dropna()
+
+    #         if len(df_backtest) < 100: # 학습에 필요한 최소 데이터 수
+    #             st.warning("백테스팅에 사용할 데이터가 너무 적습니다.")
+    #             return 0.0
+
+    #         X = df_backtest[['factor']]
+    #         y = df_backtest['target']
+
+    #         # 4. LightGBM 모델 학습 및 예측
+    #         model = lgb.LGBMRegressor(random_state=42, n_estimators=100)
+    #         model.fit(X, y)
+    #         predictions = model.predict(X)
+
+    #         # 5. 정보 계수(IC) 계산
+    #         # 피어슨 상관계수를 사용하여 예측값과 실제값의 상관관계 측정
+    #         ic, _ = pearsonr(predictions, y)
+
+    #         return float(ic)
+
+    #     except Exception as e:
+    #         # st.warning(f"'{factor_expression}' 팩터 백테스팅 중 오류 발생: {e}")
+    #         # 유효하지 않은 팩터 표현식이 많을 수 있으므로 경고는 주석 처리
+    #         return 0.0
+
     def run_backtest(self, factor_expression: str) -> float:
         """
         주어진 팩터 표현식을 평가하고 LightGBM을 사용하여 백테스트를 실행합니다.
@@ -118,13 +173,9 @@ class BacktesterClient:
 
         try:
             # 1. 팩터 값 계산 (pd.eval 사용)
-            # 'self.stock_data'의 컬럼을 지역 변수처럼 사용하여 표현식 계산
-            # 보안 참고: 실제 서비스에서는 eval 사용에 매우 신중해야 합니다.
-            # 이 프로젝트에서는 내부적으로 생성된 팩터만 사용하므로 제한적으로 허용합니다.
             factor_values = self.stock_data.eval(factor_expression, engine='python')
 
             # 2. 예측 대상(target) 생성: 다음 날의 수익률
-            # 그룹별(ticker)로 수익률을 계산하여 데이터 왜곡 방지
             target = self.stock_data.groupby('ticker')['close'].pct_change(1).shift(-1)
 
             # 3. 데이터셋 준비
@@ -134,7 +185,7 @@ class BacktesterClient:
             }).dropna()
 
             if len(df_backtest) < 100: # 학습에 필요한 최소 데이터 수
-                st.warning("백테스팅에 사용할 데이터가 너무 적습니다.")
+                st.warning(f"'{factor_expression}' 팩터 계산 후 데이터가 너무 적어 백테스팅을 건너뜁니다. (데이터 수: {len(df_backtest)})")
                 return 0.0
 
             X = df_backtest[['factor']]
@@ -146,12 +197,12 @@ class BacktesterClient:
             predictions = model.predict(X)
 
             # 5. 정보 계수(IC) 계산
-            # 피어슨 상관계수를 사용하여 예측값과 실제값의 상관관계 측정
             ic, _ = pearsonr(predictions, y)
 
             return float(ic)
 
         except Exception as e:
-            # st.warning(f"'{factor_expression}' 팩터 백테스팅 중 오류 발생: {e}")
-            # 유효하지 않은 팩터 표현식이 많을 수 있으므로 경고는 주석 처리
+            # ## 🔑 주요 수정 사항 ##
+            # 아래 st.warning 라인의 주석을 해제하여 에러 메시지를 화면에 출력합니다.
+            st.warning(f"'{factor_expression}' 팩터 백테스팅 중 오류 발생: {e}")
             return 0.0
