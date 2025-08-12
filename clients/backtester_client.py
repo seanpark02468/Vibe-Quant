@@ -16,6 +16,7 @@ import streamlit as st
 import os
 import gdown
 import pyarrow
+import inspect
 import operators as op
 # from ..config import DATA_PATH
 
@@ -24,11 +25,22 @@ class BacktesterClient:
     데이터 로딩 및 간소화된 백테스팅을 수행하는 클라이언트.
     LightGBM 모델을 사용하여 팩터의 예측력을 평가하고 정보 계수(IC)를 계산합니다.
     """
+    # def __init__(self):
+    #     """
+    #     클라이언트를 초기화하고 데이터를 로드합니다.
+    #     """
+    #     self.stock_data = self.load_data()
+
     def __init__(self):
         """
         클라이언트를 초기화하고 데이터를 로드합니다.
         """
         self.stock_data = self.load_data()
+        if not self.stock_data.empty:
+            # operators.py의 함수들이 올바르게 작동하려면 멀티 인덱스가 필수입니다.
+            if not isinstance(self.stock_data.index, pd.MultiIndex):
+                self.stock_data.set_index(['date', 'ticker'], inplace=True)
+                self.stock_data.sort_index(inplace=True)
 
     # def load_data(self) -> pd.DataFrame:
     #     """
@@ -157,41 +169,77 @@ class BacktesterClient:
     #         # 유효하지 않은 팩터 표현식이 많을 수 있으므로 경고는 주석 처리
     #         return 0.0
 
+    # def run_backtest(self, factor_expression: str) -> float:
+    #     """
+    #     주어진 팩터 표현식을 평가하고 LightGBM을 사용하여 백테스트를 실행합니다.
+
+    #     Args:
+    #         factor_expression (str): 평가할 알파 팩터의 문자열 표현식.
+    #                                  (예: 'close / open - 1')
+
+    #     Returns:
+    #         float: 계산된 정보 계수(IC). 오류 발생 시 0.0을 반환합니다.
+    #     """
+    #     if self.stock_data.empty:
+    #         st.warning("주식 데이터가 없어 백테스팅을 건너뜁니다.")
+    #         return 0.0
+
+    #     try:
+    #         # 1. 팩터 값 계산 (pd.eval 사용)
+    #         factor_values = self.stock_data.eval(factor_expression, engine='python')
+
+    #         # 2. 예측 대상(target) 생성: 다음 날의 수익률
+    #         target = self.stock_data.groupby('ticker')['close'].pct_change(1).shift(-1)
+
+    #         # 3. 데이터셋 준비
+    #         df_backtest = pd.DataFrame({
+    #             'factor': factor_values,
+    #             'target': target
+    #         }).dropna()
+
+    #         if len(df_backtest) < 100: # 학습에 필요한 최소 데이터 수
+    #             st.warning(f"'{factor_expression}' 팩터 계산 후 데이터가 너무 적어 백테스팅을 건너뜁니다. (데이터 수: {len(df_backtest)})")
+    #             return 0.0
+
+    #         X = df_backtest[['factor']]
+    #         y = df_backtest['target']
+
+        #     # 4. LightGBM 모델 학습 및 예측
+        #     model = lgb.LGBMRegressor(random_state=42, n_estimators=100)
+        #     model.fit(X, y)
+        #     predictions = model.predict(X)
+
+        #     # 5. 정보 계수(IC) 계산
+        #     ic, _ = pearsonr(predictions, y)
+
+        #     return float(ic)
+
+        # except Exception as e:
+        #     # ## 🔑 주요 수정 사항 ##
+        #     # 아래 st.warning 라인의 주석을 해제하여 에러 메시지를 화면에 출력합니다.
+        #     st.warning(f"'{factor_expression}' 팩터 백테스팅 중 오류 발생: {e}")
+        #     return 0.0
+
     def run_backtest(self, factor_expression: str) -> float:
-        """
-        주어진 팩터 표현식을 평가하고 LightGBM을 사용하여 백테스트를 실행합니다.
-
-        Args:
-            factor_expression (str): 평가할 알파 팩터의 문자열 표현식.
-                                     (예: 'close / open - 1')
-
-        Returns:
-            float: 계산된 정보 계수(IC). 오류 발생 시 0.0을 반환합니다.
-        """
         if self.stock_data.empty:
             st.warning("주식 데이터가 없어 백테스팅을 건너뜁니다.")
             return 0.0
 
         try:
-            # 1. 팩터 값 계산 (pd.eval 사용)
-            factor_values = self.stock_data.eval(factor_expression, engine='python')
+            # 1. 사용 가능한 연산자 함수들을 동적으로 로드
+            operator_funcs = {
+                name: func for name, func in inspect.getmembers(operators, inspect.isfunction)
+                if not name.startswith('_')
+            }
 
-            # 2. 예측 대상(target) 생성: 다음 날의 수익률
-            target = self.stock_data.groupby('ticker')['close'].pct_change(1).shift(-1)
-
-            # 3. 데이터셋 준비
-            df_backtest = pd.DataFrame({
-                'factor': factor_values,
-                'target': target
-            }).dropna()
-
-            if len(df_backtest) < 100: # 학습에 필요한 최소 데이터 수
-                st.warning(f"'{factor_expression}' 팩터 계산 후 데이터가 너무 적어 백테스팅을 건너뜁니다. (데이터 수: {len(df_backtest)})")
-                return 0.0
-
-            X = df_backtest[['factor']]
-            y = df_backtest['target']
-
+            # 3. pd.eval 호출
+            # 데이터프레임의 eval 메서드를 사용하고, local_dict로 함수를 전달합니다.
+            factor_values = self.stock_data.eval(
+                factor_expression, 
+                local_dict=operator_funcs, 
+                engine='python' # 복잡한 함수 호출을 위해 python 엔진 사용
+            )
+            
             # 4. LightGBM 모델 학습 및 예측
             model = lgb.LGBMRegressor(random_state=42, n_estimators=100)
             model.fit(X, y)
