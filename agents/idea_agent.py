@@ -27,12 +27,12 @@ class IdeaAgent:
         """
         self.llm_client = llm_client
 
-    def generate_initial_hypothesis(self, expert_insight: str) -> dict:
+    def generate_initial_hypothesis(self, initial_insight: str) -> dict:
         """
-        전문가의 초기 아이디어를 기반으로 첫 번째 시장 가설을 생성합니다.
+        사용자의 초기 아이디어를 기반으로 첫 번째 시장 가설을 생성합니다.
 
         Args:
-            expert_insight (str): 시장에 대한 전문가의 초기 아이디어 또는 관찰.
+            initial_insight (str): 시장에 대한 사용자의 초기 아이디어 또는 관찰.
 
         Returns:
             dict: 구조화된 시장 가설.
@@ -48,7 +48,7 @@ class IdeaAgent:
         4. hypothesis: '만약 ~하다면, ~할 것이다' 형태의 명확하고 검증 가능한 가설.
         5. specification: 가설을 팩터로 구현할 때 고려해야 할 구체적인 조건이나 파라미터.
         """
-        user_prompt = f"다음 전문가 인사이트를 바탕으로 구조화된 투자 가설을 JSON 형식으로 생성해주세요:\n\n---\n{expert_insight}\n---"
+        user_prompt = f"다음 전문가 인사이트를 바탕으로 구조화된 투자 가설을 JSON 형식으로 생성해주세요:\n\n---\n{initial_insight}\n---"
 
         response_text = self.llm_client.generate_text(user_prompt, system_prompt)
         try:
