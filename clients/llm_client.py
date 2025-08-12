@@ -37,7 +37,7 @@ class LLMClient:
         주어진 프롬프트를 기반으로 LLM을 사용하여 텍스트를 생성합니다.
 
         Args:
-            prompt (str): 모델에 전달할 사용자 프롬프트.
+            user_prompt (str): 모델에 전달할 사용자 프롬프트.
             system_prompt (str): 모델의 역할과 행동을 정의하는 시스템 프롬프트.
 
         Returns:
@@ -48,7 +48,7 @@ class LLMClient:
                 model="gpt-4o",
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": user_prompt}
                 ],
                 temperature=0.7, # 창의성과 일관성 사이의 균형을 맞추기 위한 설정
             )
