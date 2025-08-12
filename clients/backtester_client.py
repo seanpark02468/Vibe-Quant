@@ -15,6 +15,7 @@ from scipy.stats import pearsonr
 import streamlit as st
 import os
 import gdown
+import pyarrow
 # from ..config import DATA_PATH
 
 class BacktesterClient:
@@ -28,34 +29,78 @@ class BacktesterClient:
         """
         self.stock_data = self.load_data()
 
-    def load_data(self) -> pd.DataFrame:
+    # def load_data(self) -> pd.DataFrame:
+    #     """
+    #     구글 드라이브에서 Parquet 형식의 주식 데이터를 다운로드하여 로드합니다.
+    #     """
+    #     output_path = 'kor_stocks.parquet'
+        
+    #     # 파일이 이미 로컬에 존재하지 않는 경우에만 다운로드
+    #     if not os.path.exists(output_path):
+    #         try:
+    #             with st.spinner("구글 드라이브에서 주식 데이터를 다운로드 중입니다..."):
+    #                 gdown.download(id=st.secrets["GOOGLE_DRIVE_FILE_ID"], output=output_path, quiet=False)
+    #         except Exception as e:
+    #             st.error(f"구글 드라이브 파일 다운로드 중 오류 발생: {e}")
+    #             return pd.DataFrame()
+
+    #     # 다운로드된 로컬 파일을 읽습니다.
+    #     try:
+    #         df = pd.read_parquet(output_path)
+    #         df['date'] = pd.to_datetime(df['date'])
+    #         df.sort_values(by=['ticker', 'date'], inplace=True)
+    #         df.reset_index(drop=True, inplace=True)
+    #         return df
+    #     except FileNotFoundError:
+    #         st.error(f"다운로드된 데이터 파일({output_path})을 찾을 수 없습니다.")
+    #         return pd.DataFrame()
+    #     except Exception as e:
+    #         st.error(f"데이터 로드 중 오류 발생: {e}")
+    #         return pd.DataFrame()
+
+        def load_data(self) -> pd.DataFrame:
         """
         구글 드라이브에서 Parquet 형식의 주식 데이터를 다운로드하여 로드합니다.
+        다운로드 실패 및 파일 손상을 처리하는 로직이 강화되었습니다.
         """
         output_path = 'kor_stocks.parquet'
         
-        # 파일이 이미 로컬에 존재하지 않는 경우에만 다운로드
+        # 파일이 로컬에 존재하지 않는 경우에만 다운로드
         if not os.path.exists(output_path):
             try:
-                with st.spinner("구글 드라이브에서 주식 데이터를 다운로드 중입니다..."):
-                    gdown.download(id=st.secrets["GOOGLE_DRIVE_FILE_ID"], output=output_path, quiet=False)
+                with st.spinner("구글 드라이브에서 주식 데이터를 다운로드 중입니다... (파일 크기에 따라 시간이 걸릴 수 있습니다)"):
+                    # gdown.download의 결과를 변수로 받아 성공 여부 확인
+                    downloaded_path = gdown.download(id=st.secrets["GOOGLE_DRIVE_FILE_ID"], output=output_path, quiet=False)
+                    if downloaded_path is None:
+                        st.error("파일 다운로드에 실패했습니다. 구글 드라이브 파일 ID와 공유 설정을 확인하세요.")
+                        return pd.DataFrame()
             except Exception as e:
-                st.error(f"구글 드라이브 파일 다운로드 중 오류 발생: {e}")
+                st.error(f"구글 드라이브 파일 다운로드 중 심각한 오류 발생: {e}")
+                # 실패 시 불완전한 파일이 남아있을 수 있으므로 삭제
+                if os.path.exists(output_path):
+                    os.remove(output_path)
                 return pd.DataFrame()
 
-        # 다운로드된 로컬 파일을 읽습니다.
+        # 다운로드된 로컬 파일을 읽고 유효성을 검사합니다.
         try:
             df = pd.read_parquet(output_path)
             df['date'] = pd.to_datetime(df['date'])
             df.sort_values(by=['ticker', 'date'], inplace=True)
             df.reset_index(drop=True, inplace=True)
+            st.success("데이터 로딩 완료!")
             return df
+        except pyarrow.lib.ArrowInvalid as e: # Parquet 파일이 아닐 때 발생하는 특정 오류
+            st.error(f"다운로드된 파일이 유효한 Parquet 형식이 아닙니다. 파일을 삭제하고 재시도합니다. 오류: {e}")
+            # 손상된 파일 삭제
+            os.remove(output_path)
+            return pd.DataFrame()
         except FileNotFoundError:
-            st.error(f"다운로드된 데이터 파일({output_path})을 찾을 수 없습니다.")
+            st.error(f"데이터 파일({output_path})을 찾을 수 없습니다.")
             return pd.DataFrame()
         except Exception as e:
-            st.error(f"데이터 로드 중 오류 발생: {e}")
+            st.error(f"데이터 로드 중 알 수 없는 오류 발생: {e}")
             return pd.DataFrame()
+    
     def run_backtest(self, factor_expression: str) -> float:
         """
         주어진 팩터 표현식을 평가하고 LightGBM을 사용하여 백테스트를 실행합니다.
