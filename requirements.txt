@@ -9,6 +9,5 @@ lightgbm
 bayesian-optimization
 numpy
 scipy
-gdown
 
 
