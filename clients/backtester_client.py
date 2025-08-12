@@ -58,7 +58,7 @@ class BacktesterClient:
     #         st.error(f"데이터 로드 중 오류 발생: {e}")
     #         return pd.DataFrame()
 
-        def load_data(self) -> pd.DataFrame:
+    def load_data(self) -> pd.DataFrame:
         """
         구글 드라이브에서 Parquet 형식의 주식 데이터를 다운로드하여 로드합니다.
         다운로드 실패 및 파일 손상을 처리하는 로직이 강화되었습니다.
