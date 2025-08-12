@@ -220,38 +220,104 @@ class BacktesterClient:
         #     st.warning(f"'{factor_expression}' 팩터 백테스팅 중 오류 발생: {e}")
         #     return 0.0
 
+    # def run_backtest(self, factor_expression: str) -> float:
+    #     if self.stock_data.empty:
+    #         st.warning("주식 데이터가 없어 백테스팅을 건너뜁니다.")
+    #         return 0.0
+
+    #     try:
+    #         # 1. 사용 가능한 연산자 함수들을 동적으로 로드
+    #         operator_funcs = {
+    #             name: func for name, func in inspect.getmembers(operators, inspect.isfunction)
+    #             if not name.startswith('_')
+    #         }
+
+    #         # 3. pd.eval 호출
+    #         # 데이터프레임의 eval 메서드를 사용하고, local_dict로 함수를 전달합니다.
+    #         factor_values = self.stock_data.eval(
+    #             factor_expression, 
+    #             local_dict=operator_funcs, 
+    #             engine='python' # 복잡한 함수 호출을 위해 python 엔진 사용
+    #         )
+            
+    #         # 4. LightGBM 모델 학습 및 예측
+    #         model = lgb.LGBMRegressor(random_state=42, n_estimators=100)
+    #         model.fit(X, y)
+    #         predictions = model.predict(X)
+
+    #         # 5. 정보 계수(IC) 계산
+    #         ic, _ = pearsonr(predictions, y)
+
+    #         return float(ic)
+
+    #     except Exception as e:
+    #         # ## 🔑 주요 수정 사항 ##
+    #         # 아래 st.warning 라인의 주석을 해제하여 에러 메시지를 화면에 출력합니다.
+    #         st.warning(f"'{factor_expression}' 팩터 백테스팅 중 오류 발생: {e}")
+    #         return 0.0
+
     def run_backtest(self, factor_expression: str) -> float:
+        """
+        주어진 팩터 표현식을 평가하고 LightGBM을 사용하여 백테스트를 실행합니다.
+        pd.eval()과 명시적 실행 범위를 사용하여 안정성을 높였습니다.
+        """
         if self.stock_data.empty:
             st.warning("주식 데이터가 없어 백테스팅을 건너뜁니다.")
             return 0.0
 
         try:
-            # 1. 사용 가능한 연산자 함수들을 동적으로 로드
+            # 1. operators.py에서 연산자 함수들을 동적으로 로드
             operator_funcs = {
                 name: func for name, func in inspect.getmembers(operators, inspect.isfunction)
                 if not name.startswith('_')
             }
 
-            # 3. pd.eval 호출
-            # 데이터프레임의 eval 메서드를 사용하고, local_dict로 함수를 전달합니다.
-            factor_values = self.stock_data.eval(
-                factor_expression, 
-                local_dict=operator_funcs, 
-                engine='python' # 복잡한 함수 호출을 위해 python 엔진 사용
+            # 2. 데이터프레임의 컬럼들을 딕셔너리로 준비
+            data_vars = {col: self.stock_data[col] for col in self.stock_data.columns}
+
+            # 3. 연산자 함수와 데이터 컬럼을 하나의 실행 범위(scope)로 통합
+            eval_scope = {**operator_funcs, **data_vars}
+
+            # 4. 최상위 pd.eval() 함수를 사용하여 팩터 계산
+            # - local_dict에 통합된 실행 범위를 전달하여 모든 변수와 함수를 인식시킴
+            # - global_dict를 비워두어 보안 강화
+            factor_values = pd.eval(
+                factor_expression,
+                engine='python',
+                local_dict=eval_scope,
+                global_dict={}
             )
-            
-            # 4. LightGBM 모델 학습 및 예측
-            model = lgb.LGBMRegressor(random_state=42, n_estimators=100)
+
+            # 5. 예측 대상(target) 생성: 다음 날의 수익률
+            # 그룹별(ticker)로 수익률을 계산하여 데이터 왜곡 방지
+            target = self.stock_data.groupby(level='ticker')['close'].pct_change(1).shift(-1)
+
+            # 6. 데이터셋 준비
+            # factor_values에 원본 데이터프레임의 인덱스를 명시적으로 부여하여 안정성 확보
+            df_backtest = pd.DataFrame({
+                'factor': factor_values,
+                'target': target
+            }, index=self.stock_data.index).dropna()
+
+            # 7. 학습에 필요한 최소 데이터 수 확인
+            if len(df_backtest) < 100:
+                st.warning(f"'{factor_expression}' 팩터 계산 후 데이터가 너무 적어 백테스팅을 건너뜁니다. (데이터 수: {len(df_backtest)})")
+                return 0.0
+
+            X = df_backtest[['factor']]
+            y = df_backtest['target']
+
+            # 8. LightGBM 모델 학습 및 예측
+            model = lgb.LGBMRegressor(random_state=42, n_estimators=100, verbosity=-1)
             model.fit(X, y)
             predictions = model.predict(X)
 
-            # 5. 정보 계수(IC) 계산
+            # 9. 정보 계수(IC) 계산
+            # 피어슨 상관계수를 사용하여 예측값과 실제값의 상관관계 측정
             ic, _ = pearsonr(predictions, y)
 
             return float(ic)
 
         except Exception as e:
-            # ## 🔑 주요 수정 사항 ##
-            # 아래 st.warning 라인의 주석을 해제하여 에러 메시지를 화면에 출력합니다.
             st.warning(f"'{factor_expression}' 팩터 백테스팅 중 오류 발생: {e}")
             return 0.0
