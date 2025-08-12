@@ -1,0 +1,11 @@
+# requirements.txt
+
+streamlit
+openai
+pandas
+pyarrow
+scikit-learn
+lightgbm
+bayesian-optimization
+numpy
+scipy
