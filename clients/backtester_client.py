@@ -36,7 +36,7 @@ class BacktesterClient:
         if not os.path.exists(output_path):
             try:
                 with st.spinner("구글 드라이브에서 주식 데이터를 다운로드 중입니다..."):
-                    gdown.download(id=GOOGLE_DRIVE_FILE_ID, output=output_path, quiet=False)
+                    gdown.download(id=st.secrets["GOOGLE_DRIVE_FILE_ID"], output=output_path, quiet=False)
             except Exception as e:
                 st.error(f"구글 드라이브 파일 다운로드 중 오류 발생: {e}")
                 return pd.DataFrame()
