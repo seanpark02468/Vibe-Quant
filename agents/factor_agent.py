@@ -117,7 +117,7 @@ class FactorAgent:
         주어진 투자 가설을 수학적 표현식(알파 팩터)으로 구현해야 합니다.
         반드시 다음 규칙을 따라야 합니다:
         1. 최종 결과는 JSON 형식의 리스트여야 하며, 각 요소는 'description'과 'formula' 키를 가진 객체입니다.
-        2. 'formula'는 pandas에서 `df.eval()`로 실행 가능한 파이썬 코드여야 합니다.
+        2. 'formula'는 pandas에서 `pd.eval()`로 실행 가능한 파이썬 코드여야 합니다.
         3. 'formula'를 작성할 때, 기본 데이터 컬럼('open', 'high', 'low', 'close', 'volume')과
            다음의 허용된 함수(오퍼레이터) 목록만을 사용해야 합니다: {', '.join(self.available_operators)}.
         4. 허용되지 않은 함수나 라이브러리(예: np.log, talib 등)는 절대 사용하면 안 됩니다.
