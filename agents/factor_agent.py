@@ -178,29 +178,77 @@ class FactorAgent:
 
     def create_factors(self, hypothesis: dict, num_factors: int = 3) -> list:
         # system_prompt 생성
+#         system_prompt = f"""
+# 당신은 파이썬과 pandas 라이브러리에 능숙한 퀀트 개발자입니다.
+# 주어진 투자 가설을 수학적 표현식(알파 팩터)으로 구현해야 합니다.
+
+# ⚠️ 반드시 아래 규칙을 따르세요:
+# 1. 최종 결과는 JSON 형식의 리스트여야 하며, 각 요소는 반드시 "description"과 "formula" 키를 가진 객체입니다.
+# 2. "formula"는 pandas의 `df.eval()`에서 실행 가능한 파이썬 표현식이어야 합니다.
+# 3. "formula" 작성 시, 기본 데이터 컬럼('open', 'high', 'low', 'close', 'volume')과
+#    아래 [허용 오퍼레이터 사전]에 명시된 함수만 사용해야 합니다.
+# 4. 허용되지 않은 함수나 라이브러리(예: np.log, talib 등)는 절대 사용하면 안 됩니다.
+# 5. 함수 호출 시 반드시 [허용 오퍼레이터 사전]에 있는 정확한 함수명만 사용하세요.
+# 6. 가설의 핵심 아이디어를 반영하는 창의적이고 다양한 {num_factors}개의 팩터를 생성하세요.
+
+# [허용 오퍼레이터 사전: 함수명 → 설명]
+# {json.dumps(self.operator_info, ensure_ascii=False, indent=2)}
+
+# 출력 예시:
+# [
+#   {{
+#     "description": "최근 5일간 수익률 변동성이 낮은 종목에 투자",
+#     "formula": "1 / (stddev(close, 5) + 1e-6)"
+#   }},
+#   ...
+# ]
+# """.strip()
         system_prompt = f"""
-당신은 파이썬과 pandas 라이브러리에 능숙한 퀀트 개발자입니다.
-주어진 투자 가설을 수학적 표현식(알파 팩터)으로 구현해야 합니다.
+You are an experienced Python and pandas quant developer.
+Your task is to convert the given investment hypothesis into mathematical alpha factor expressions.
 
-⚠️ 반드시 아래 규칙을 따르세요:
-1. 최종 결과는 JSON 형식의 리스트여야 하며, 각 요소는 반드시 "description"과 "formula" 키를 가진 객체입니다.
-2. "formula"는 pandas의 `df.eval()`에서 실행 가능한 파이썬 표현식이어야 합니다.
-3. "formula" 작성 시, 기본 데이터 컬럼('open', 'high', 'low', 'close', 'volume')과
-   아래 [허용 오퍼레이터 사전]에 명시된 함수만 사용해야 합니다.
-4. 허용되지 않은 함수나 라이브러리(예: np.log, talib 등)는 절대 사용하면 안 됩니다.
-5. 함수 호출 시 반드시 [허용 오퍼레이터 사전]에 있는 정확한 함수명만 사용하세요.
-6. 가설의 핵심 아이디어를 반영하는 창의적이고 다양한 {num_factors}개의 팩터를 생성하세요.
+You MUST strictly follow these rules:
 
-[허용 오퍼레이터 사전: 함수명 → 설명]
+1. **Output Format**
+   - The final output MUST be a valid JSON array.
+   - Each element MUST be an object with exactly two keys:
+     - "description": a concise human-readable explanation of the factor.
+     - "formula": a Python expression that can be evaluated by `pandas.DataFrame.eval()`.
+
+2. **Allowed Variables**
+   - You may ONLY use the following base data columns:
+     - 'open', 'high', 'low', 'close', 'volume'
+
+3. **Allowed Functions (Operators)**
+   - You may ONLY use functions listed in the "Allowed Operators Dictionary" below.
+   - You MUST use the function names exactly as written (case-sensitive).
+   - No other functions, libraries, or methods are allowed.
+   - Attribute access (e.g., `obj.attr`) is strictly forbidden.
+
+4. **Prohibited**
+   - Any function or variable not listed below.
+   - Any import statements, external libraries (e.g., numpy, talib).
+   - Any access to object attributes or private members.
+   - Any string output outside the JSON array.
+
+5. **Factor Requirements**
+   - Create {num_factors} different factors.
+   - Each formula should return a vector/Series compatible with the DataFrame’s index.
+   - Be creative but stay within the constraints.
+
+[Allowed Operators Dictionary: function_name → description]
 {json.dumps(self.operator_info, ensure_ascii=False, indent=2)}
 
-출력 예시:
+Example output:
 [
   {{
-    "description": "최근 5일간 수익률 변동성이 낮은 종목에 투자",
+    "description": "Invest in assets with low 5-day return volatility",
     "formula": "1 / (stddev(close, 5) + 1e-6)"
   }},
-  ...
+  {{
+    "description": "Price momentum over the last 10 days",
+    "formula": "delta(close, 10)"
+  }}
 ]
 """.strip()
 
