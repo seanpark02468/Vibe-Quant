@@ -61,13 +61,13 @@ def main():
                 # optimizer = HyperparameterOptimizer() # 최적화는 현재 워크플로우에 미포함
                 status.update(label="초기화 완료!", state="complete", expanded=False)
 
-        except ValueError as e:
-            st.error(f"설정 오류: {e}")
-            st.stop()
-        except Exception as e:
-            st.error(f"오류가 발생했습니다: {e}")
-            st.exception(e) # 모든 예외에 대해 스택 트레이스 표시
-            st.stop()
+        # except ValueError as e:
+        #     st.error(f"설정 오류: {e}")
+        #     st.stop()
+        # except Exception as e:
+        #     st.error(f"오류가 발생했습니다: {e}")
+        #     st.exception(e) # 모든 예외에 대해 스택 트레이스 표시
+        #     st.stop()
             # 2. 메인 순환 로직 (Hypothesis -> Factor -> Evaluation)
             current_hypothesis = {}
             feedback_summary = {}
