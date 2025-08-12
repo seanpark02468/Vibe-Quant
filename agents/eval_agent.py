@@ -9,7 +9,7 @@ Original file is located at
 
 # /agents/eval_agent.py
 
-from ..clients.backtester_client import BacktesterClient
+from clients.backtester_client import BacktesterClient
 
 class EvalAgent:
     """
