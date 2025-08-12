@@ -13,6 +13,7 @@ import pandas as pd
 import lightgbm as lgb
 from scipy.stats import pearsonr
 import streamlit as st
+import os
 # from ..config import DATA_PATH
 
 class BacktesterClient:
