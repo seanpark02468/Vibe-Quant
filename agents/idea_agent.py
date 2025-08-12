@@ -60,7 +60,7 @@ class IdeaAgent:
         """
         # user_prompt = f"다음 사용자 인사이트를 바탕으로 구조화된 투자 가설을 JSON 형식으로 생성해주세요:\n\n---\n{initial_insight}\n---"
 
-        response_text = self.llm_client.generate_text(user_prompt, system_prompt)
+        response_text = self.llm_client.generate_text(system_prompt)
         try:
             return json.loads(response_text)
         except json.JSONDecodeError:
