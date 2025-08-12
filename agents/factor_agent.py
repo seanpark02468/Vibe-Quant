@@ -72,7 +72,7 @@ import json
 import re  # 정규 표현식 모듈 임포트
 from clients.llm_client import LLMClient
 import inspect
-import operators
+from core import operators
 
 class FactorAgent:
     """
