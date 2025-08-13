@@ -328,7 +328,7 @@ def main():
                 # --- 팩터 생성 단계 ---
                 with st.spinner("LLM이 가설을 바탕으로 알파 팩터 수식을 생성 중입니다..."):
                     # 최적화를 위해 더 많은 팩터 후보군 생성
-                    generated_factors = factor_agent.create_factors(current_hypothesis, num_factors=5)
+                    generated_factors = factor_agent.create_factors(current_hypothesis, num_factors=3)
                 if not generated_factors:
                     st.error("팩터 생성에 실패했습니다. 워크플로우를 중단합니다."); return
                 st.write("📝 **생성된 팩터 후보:**"); st.json(generated_factors)
