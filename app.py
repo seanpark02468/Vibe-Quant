@@ -282,13 +282,13 @@ def main():
     st.set_page_config(page_title="AlphaAgent: LLM-Driven Alpha Mining", layout="wide")
 
     # --- UI 구성 ---
-    st.title("🤖 AlphaAgent: LLM 기반 알파 탐색 및 투자 조언")
+    st.title("Vibe Quant")
     st.markdown("""
-    'AlphaAgent' 논문을 기반으로 구현된 이 서비스는 LLM 에이전트를 활용하여 새로운 투자 아이디어(알파 팩터)를 발굴하고,
+    이 서비스는 LLM 에이전트를 활용하여 새로운 투자 아이디어(알파 팩터)를 발굴하고,
     백테스팅을 통해 검증한 뒤, 최종적으로 개인 투자자를 위한 조언 리포트를 생성합니다.
     """)
 
-    st.sidebar.header("조정 패널")
+    st.sidebar.header("입력 패널")
     initial_insight = st.sidebar.text_area(
         "초기 투자 아이디어를 입력하세요",
         height=150,
@@ -312,7 +312,7 @@ def main():
                 eval_agent = EvalAgent(backtester_client)
                 advice_agent = InvestmentAdviceAgent(llm_client)
                 optimizer = HyperparameterOptimizer() # Optimizer 인스턴스 생성
-                status.update(label="초기화 완료!", state="complete", expanded=False)
+                status.update(label="초기 설정 완료!", state="complete", expanded=False)
 
             # 2. 메인 로직 (1단계): 초기 알파 탐색
             st.subheader("🔄 1단계: 초기 알파 탐색 및 평가")
