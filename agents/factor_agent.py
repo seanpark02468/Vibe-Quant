@@ -176,7 +176,7 @@ class FactorAgent:
         # 허용 연산자 리스트
         self.available_operators = list(self.operator_info.keys())
 
-    def create_factors(self, hypothesis: dict, num_factors: int = 3) -> list:
+    def create_factors(self, hypothesis: dict, num_factors: int = 10) -> list:
         # system_prompt 생성
 #         system_prompt = f"""
 # 당신은 파이썬과 pandas 라이브러리에 능숙한 퀀트 개발자입니다.
