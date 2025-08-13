@@ -312,7 +312,7 @@ def main():
                 eval_agent = EvalAgent(backtester_client)
                 advice_agent = InvestmentAdviceAgent(llm_client)
                 optimizer = HyperparameterOptimizer() # Optimizer 인스턴스 생성
-                status.update(label="초기 설정 완료!", state="complete", expanded=False)
+                status.update(label="초기화 완료!", state="complete", expanded=False)
 
             # 2. 메인 로직 (1단계): 초기 알파 탐색
             st.subheader("🔄 1단계: 초기 알파 탐색 및 평가")
