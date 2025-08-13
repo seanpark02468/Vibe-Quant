@@ -137,8 +137,6 @@
 # if __name__ == "__main__":
 #     main()
 
-# app.py
-
 import streamlit as st
 import pandas as pd
 
@@ -170,7 +168,7 @@ def main():
         height=150,
         placeholder="예시: 거래량이 급증하는 소형주는 단기적으로 가격이 상승하는 경향이 있다."
     )
-    num_rounds = st.sidebar.slider("본격 탐색 반복 횟수 (Rounds)", 1, 5, 2)
+    num_rounds = st.sidebar.slider("메인 탐색 반복 횟수 (Rounds)", 1, 5, 2)
     start_button = st.sidebar.button("알파 탐색 시작", type="primary")
 
     # --- 워크플로우 실행 ---
@@ -181,117 +179,103 @@ def main():
 
         try:
             # 1. 에이전트 및 클라이언트 초기화
-            llm_client = LLMClient()
-            backtester_client = BacktesterClient()
-            idea_agent = IdeaAgent(llm_client)
-            factor_agent = FactorAgent(llm_client)
-            eval_agent = EvalAgent(backtester_client)
-            advice_agent = InvestmentAdviceAgent(llm_client)
-            optimizer = HyperparameterOptimizer()
-            
-            # =================================================================
-            # 단계 1: 최적화를 위한 사전 팩터 생성
-            # =================================================================
-            with st.status("1단계: 최적화를 위한 사전 팩터 생성 중...", expanded=True) as status:
-                st.write("최적의 파라미터를 찾기 위해, 먼저 초기 아이디어로 팩터들을 생성하고 평가합니다.")
-                
-                # 가설 생성 -> 팩터 생성 -> 팩터 평가 (1회 실행)
+            with st.status("에이전트 및 클라이언트 초기화 중...", expanded=True) as status:
+                llm_client = LLMClient()
+                backtester_client = BacktesterClient()
+                idea_agent = IdeaAgent(llm_client)
+                factor_agent = FactorAgent(llm_client)
+                eval_agent = EvalAgent(backtester_client)
+                advice_agent = InvestmentAdviceAgent(llm_client)
+                optimizer = HyperparameterOptimizer()
+                status.update(label="초기화 완료!", state="complete", expanded=False)
+
+            # --- 최적화를 위한 사전 단계 ---
+            st.header("▶ 단계 1: 최적화를 위한 사전 팩터 생성 및 평가")
+            with st.spinner("최적화에 사용할 초기 팩터를 생성하고 평가하는 중입니다..."):
+                # 초기 가설 생성
                 initial_hypothesis = idea_agent.generate_initial_hypothesis(initial_insight)
                 if not initial_hypothesis:
-                    st.error("초기 가설 생성 실패. 워크플로우 중단.")
+                    st.error("초기 가설 생성에 실패했습니다. 워크플로우를 중단합니다.")
                     st.stop()
                 
-                pre_factors = factor_agent.create_factors(initial_hypothesis, num_factors=5) # 최적화를 위해 더 많은 팩터 생성
-                if not pre_factors:
-                    st.error("사전 팩터 생성 실패. 워크플로우 중단.")
+                # 초기 팩터 생성
+                initial_factors = factor_agent.create_factors(initial_hypothesis, num_factors=5) # 최적화를 위해 더 많은 팩터 생성
+                if not initial_factors:
+                    st.error("초기 팩터 생성에 실패했습니다. 워크플로우를 중단합니다.")
                     st.stop()
 
-                pre_evaluated_factors = eval_agent.evaluate_factors(pre_factors)
-                st.write("사전 평가 결과:")
-                st.dataframe(pd.DataFrame(pre_evaluated_factors))
-                status.update(label="사전 팩터 생성 및 평가 완료!", state="complete", expanded=False)
-
-            # =================================================================
-            # 단계 2: 베이지안 하이퍼파라미터 최적화
-            # =================================================================
-            with st.status("2단계: 베이지안 최적화로 최적의 하이퍼파라미터 탐색 중...", expanded=True) as status:
-                st.write("사전 평가된 팩터들을 기반으로 최적의 패널티 계수(lambda, alpha)를 탐색합니다.")
-                optimal_params = optimizer.optimize(pre_evaluated_factors)
-                st.success("최적의 하이퍼파라미터를 찾았습니다.")
-                st.json(optimal_params)
-                status.update(label="하이퍼파라미터 최적화 완료!", state="complete", expanded=False)
+                # 초기 팩터 평가
+                pre_evaluated_factors = eval_agent.evaluate_factors(initial_factors)
             
-            # =================================================================
-            # 단계 3: 최적화된 파라미터를 사용한 본격 알파 탐색
-            # =================================================================
-            st.header("📈 최적화된 파라미터를 사용한 본격 알파 탐색")
+            with st.expander("사전 평가 결과 보기"):
+                st.write("최적화에 사용될 초기 팩터들의 평가 결과입니다.")
+                st.dataframe(pd.DataFrame(pre_evaluated_factors))
+
+
+            # --- 하이퍼파라미터 최적화 단계 ---
+            st.header("▶ 단계 2: 베이지안 하이퍼파라미터 최적화")
+            with st.spinner("베이지안 최적화를 통해 최적의 정규화 계수를 탐색 중입니다..."):
+                best_params = optimizer.optimize(pre_evaluated_factors)
+
+            with st.expander("하이퍼파라미터 최적화 결과 보기", expanded=True):
+                st.write("탐색된 최적의 정규화 계수는 다음과 같습니다. 이 값들은 팩터의 최종 점수를 매길 때 복잡도 패널티를 조절하는 데 사용됩니다.")
+                st.success(f"**최적 하이퍼파라미터:** `{best_params}`")
+
+
+            # --- 메인 알파 탐색 루프 ---
+            st.header(f"▶ 단계 3: 메인 알파 탐색 루프 ({num_rounds}회)")
             current_hypothesis = initial_hypothesis
-            feedback_summary = {}
-            all_final_factors = []
+            feedback_summary = eval_agent.summarize_for_feedback(pre_evaluated_factors)
+            all_evaluated_factors = pre_evaluated_factors # 사전 평가 결과를 전체 결과에 포함
 
             for i in range(num_rounds):
                 round_num = i + 1
                 st.subheader(f"🔄 Round {round_num}")
-                
+
                 with st.expander(f"Round {round_num}: 전체 과정 보기", expanded=True):
-                    # 가설 생성 (첫 라운드는 초기 가설 재사용)
-                    if i > 0:
-                        with st.spinner("LLM이 피드백을 바탕으로 가설을 개선 중입니다..."):
-                            current_hypothesis = idea_agent.refine_hypothesis(feedback_summary)
-                        if not current_hypothesis:
-                            st.error("가설 개선 실패. 다음 라운드로 넘어갑니다.")
-                            continue
-                    st.info("**가설:**")
-                    st.json(current_hypothesis)
-                    
-                    # 팩터 생성 및 평가
-                    generated_factors = factor_agent.create_factors(current_hypothesis, num_factors=3)
-                    if not generated_factors:
-                        st.warning("이번 라운드에서 유효한 팩터가 생성되지 않았습니다.")
+                    st.info(f"**단계 3-{round_num}.1: 가설 개선 및 생성**")
+                    with st.spinner("이전 라운드 피드백을 바탕으로 LLM이 새로운 투자 가설을 생성 중입니다..."):
+                        current_hypothesis = idea_agent.refine_hypothesis(feedback_summary)
+                    if not current_hypothesis:
+                        st.error("가설 생성에 실패했습니다. 다음 라운드로 넘어갑니다.")
                         continue
+                    st.write("✨ **생성된 가설:**"); st.json(current_hypothesis)
+
+                    st.info(f"**단계 3-{round_num}.2: 팩터 변환**")
+                    with st.spinner("LLM이 가설을 바탕으로 알파 팩터 수식을 생성 중입니다..."):
+                        generated_factors = factor_agent.create_factors(current_hypothesis, num_factors=3)
+                    if not generated_factors:
+                        st.error("팩터 생성에 실패했습니다. 다음 라운드로 넘어갑니다.")
+                        continue
+                    st.write("📝 **생성된 팩터 후보:**"); st.json(generated_factors)
+
+                    st.info(f"**단계 3-{round_num}.3: 팩터 평가**")
+                    with st.spinner(f"{len(generated_factors)}개 팩터에 대한 백테스팅을 실행합니다..."):
+                        evaluated_factors = eval_agent.evaluate_factors(generated_factors)
+                    st.write("📊 **팩터 평가 결과:**"); st.dataframe(pd.DataFrame(evaluated_factors))
                     
-                    evaluated_factors = eval_agent.evaluate_factors(generated_factors)
+                    all_evaluated_factors.extend(evaluated_factors)
+                    feedback_summary = eval_agent.summarize_for_feedback(evaluated_factors)
+                    st.write("📈 **이번 라운드 요약:**"); st.json(feedback_summary)
 
-                    # 최적화된 파라미터를 사용하여 최종 점수 계산
-                    results_with_score = []
-                    for factor in evaluated_factors:
-                        penalty = optimizer._calculate_penalty(factor['formula'], optimal_params['alpha1'], optimal_params['alpha2'])
-                        score = factor['ic'] - (optimal_params['lambda_val'] * penalty)
-                        
-                        factor_copy = factor.copy()
-                        factor_copy['penalty'] = penalty
-                        factor_copy['final_score'] = score
-                        results_with_score.append(factor_copy)
-                    
-                    # 최종 점수 기준 정렬
-                    results_with_score.sort(key=lambda x: x['final_score'], reverse=True)
-                    all_final_factors.extend(results_with_score)
+            # --- 최종 분석 및 투자 조언 생성 ---
+            st.header("▶ 단계 4: 최종 결과 분석 및 리포트 생성")
+            st.success("모든 알파 탐색 과정이 완료되었습니다.")
 
-                    st.info("**성과 분석 (최종 점수 기준):**")
-                    st.dataframe(pd.DataFrame(results_with_score))
-
-                    # 다음 라운드를 위한 피드백 생성 (최종 점수 기반)
-                    feedback_summary = eval_agent.summarize_for_feedback(results_with_score)
-
-            # =================================================================
-            # 단계 4: 최종 리포트 생성
-            # =================================================================
-            st.success("모든 알파 탐색 라운드가 완료되었습니다.")
-            st.header("🏆 최종 결과 분석")
-
-            if not all_final_factors:
-                st.warning("유효한 팩터가 발굴되지 않았습니다.")
+            if not all_evaluated_factors or pd.DataFrame(all_evaluated_factors)['ic'].max() <= 0:
+                st.warning("유효한 알파 팩터(IC > 0)가 발굴되지 않았습니다.")
                 return
 
-            overall_best_factor = max(all_final_factors, key=lambda x: x['final_score'])
+            overall_best_factor = max([f for f in all_evaluated_factors if f.get('ic') is not None], key=lambda x: x['ic'])
             
-            st.write("전체 라운드에서 발굴된 최고의 알파 팩터(성과+복잡도 고려)는 다음과 같습니다:")
+            st.write("전체 과정에서 발굴된 최고의 알파 팩터는 다음과 같습니다:")
             st.json(overall_best_factor)
-            
-            st.header("📜 최종 투자 조언 리포트")
-            with st.spinner("LLM이 최종 리포트를 작성 중입니다..."):
+
+            with st.spinner("LLM이 최종 투자 조언 리포트를 작성 중입니다..."):
                 final_report = advice_agent.generate_advice_report(overall_best_factor)
             
+            st.markdown("---")
+            st.subheader("📜 최종 투자 조언 리포트")
             st.markdown(final_report)
 
         except Exception as e:
