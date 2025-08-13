@@ -319,5 +319,5 @@ class BacktesterClient:
             return float(ic)
 
         except Exception as e:
-            st.warning(f"'{factor_expression}' 팩터 백테스팅 중 오류 발생: {e}")
+            # st.warning(f"'{factor_expression}' 팩터 백테스팅 중 오류 발생: {e}")
             return 0.0
